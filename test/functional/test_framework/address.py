@@ -7,7 +7,8 @@
 
 import enum
 
-from .script import hash256, hash160, sha256, CScript, OP_0
+from .base58 import byte_to_base58
+from .script import hash160, sha256, CScript, OP_0
 from .util import hex_str_to_bytes
 
 from . import segwit_addr
@@ -20,27 +21,6 @@ class AddressType(enum.Enum):
     bech32 = 'bech32'
     p2sh_segwit = 'p2sh-segwit'
     legacy = 'legacy'  # P2PKH
-
-
-chars = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
-
-
-def byte_to_base58(b, version):
-    result = ''
-    str = b.hex()
-    str = chr(version).encode('latin-1').hex() + str
-    checksum = hash256(hex_str_to_bytes(str)).hex()
-    str += checksum[:8]
-    value = int('0x'+str,0)
-    while value > 0:
-        result = chars[value % 58] + result
-        value //= 58
-    while (str[:2] == '00'):
-        result = chars[0] + result
-        str = str[2:]
-    return result
-
-# TODO: def base58_decode
 
 def keyhash_to_p2pkh(hash, main = False):
     assert len(hash) == 20
