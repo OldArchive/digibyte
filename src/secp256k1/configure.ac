@@ -109,7 +109,7 @@ AC_ARG_ENABLE(openssl_tests,
 AC_ARG_ENABLE(experimental,
     AS_HELP_STRING([--enable-experimental],[allow experimental configure options [default=no]]),
     [use_experimental=$enableval],
-    [use_experimental=no])
+    [use_experimental=yes])
 
 AC_ARG_ENABLE(exhaustive_tests,
     AS_HELP_STRING([--enable-exhaustive-tests],[compile exhaustive tests [default=yes]]),
@@ -144,7 +144,7 @@ AC_ARG_ENABLE(module_extrakeys,
 AC_ARG_ENABLE(module_schnorrsig,
     AS_HELP_STRING([--enable-module-schnorrsig],[enable schnorrsig module (experimental)]),
     [enable_module_schnorrsig=$enableval],
-    [enable_module_schnorrsig=no])
+    [enable_module_schnorrsig=yes])
 
 AC_ARG_ENABLE(external_default_callbacks,
     AS_HELP_STRING([--enable-external-default-callbacks],[enable external default callback functions [default=no]]),
