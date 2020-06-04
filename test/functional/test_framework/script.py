@@ -8,16 +8,29 @@
 This file is modified from python-digibytelib.
 """
 
-from .messages import CTransaction, CTxOut, sha256, hash256, uint256_from_str, ser_uint256, ser_string
-
 import hashlib
 import struct
 
-from .bignum import bn2vch
+from .key import TaggedHash, tweak_pubkey
+
+from .messages import (
+    CTransaction,
+    CTxOut,
+    hash256,
+    ser_string,
+    ser_uint256,
+    sha256,
+    uint256_from_str,
+)
 
 MAX_SCRIPT_ELEMENT_SIZE = 520
+LOCKTIME_THRESHOLD = 500000000
+ANNEX_TAG = 0x50
 
 OPCODE_NAMES = {}
+
+LEAF_VERSION_TAPSCRIPT = 0xc0
+TAPROOT_VER = 0
 
 def hash160(s):
     return hashlib.new('ripemd160', sha256(s)).digest()
@@ -224,131 +237,125 @@ OP_NOP8 = CScriptOp(0xb7)
 OP_NOP9 = CScriptOp(0xb8)
 OP_NOP10 = CScriptOp(0xb9)
 
-# template matching params
-OP_SMALLINTEGER = CScriptOp(0xfa)
-OP_PUBKEYS = CScriptOp(0xfb)
-OP_PUBKEYHASH = CScriptOp(0xfd)
-OP_PUBKEY = CScriptOp(0xfe)
+# BIP 342 opcodes (Tapscript)
+OP_CHECKSIGADD = CScriptOp(0xba)
 
 OP_INVALIDOPCODE = CScriptOp(0xff)
 
 OPCODE_NAMES.update({
-    OP_0 : 'OP_0',
-    OP_PUSHDATA1 : 'OP_PUSHDATA1',
-    OP_PUSHDATA2 : 'OP_PUSHDATA2',
-    OP_PUSHDATA4 : 'OP_PUSHDATA4',
-    OP_1NEGATE : 'OP_1NEGATE',
-    OP_RESERVED : 'OP_RESERVED',
-    OP_1 : 'OP_1',
-    OP_2 : 'OP_2',
-    OP_3 : 'OP_3',
-    OP_4 : 'OP_4',
-    OP_5 : 'OP_5',
-    OP_6 : 'OP_6',
-    OP_7 : 'OP_7',
-    OP_8 : 'OP_8',
-    OP_9 : 'OP_9',
-    OP_10 : 'OP_10',
-    OP_11 : 'OP_11',
-    OP_12 : 'OP_12',
-    OP_13 : 'OP_13',
-    OP_14 : 'OP_14',
-    OP_15 : 'OP_15',
-    OP_16 : 'OP_16',
-    OP_NOP : 'OP_NOP',
-    OP_VER : 'OP_VER',
-    OP_IF : 'OP_IF',
-    OP_NOTIF : 'OP_NOTIF',
-    OP_VERIF : 'OP_VERIF',
-    OP_VERNOTIF : 'OP_VERNOTIF',
-    OP_ELSE : 'OP_ELSE',
-    OP_ENDIF : 'OP_ENDIF',
-    OP_VERIFY : 'OP_VERIFY',
-    OP_RETURN : 'OP_RETURN',
-    OP_TOALTSTACK : 'OP_TOALTSTACK',
-    OP_FROMALTSTACK : 'OP_FROMALTSTACK',
-    OP_2DROP : 'OP_2DROP',
-    OP_2DUP : 'OP_2DUP',
-    OP_3DUP : 'OP_3DUP',
-    OP_2OVER : 'OP_2OVER',
-    OP_2ROT : 'OP_2ROT',
-    OP_2SWAP : 'OP_2SWAP',
-    OP_IFDUP : 'OP_IFDUP',
-    OP_DEPTH : 'OP_DEPTH',
-    OP_DROP : 'OP_DROP',
-    OP_DUP : 'OP_DUP',
-    OP_NIP : 'OP_NIP',
-    OP_OVER : 'OP_OVER',
-    OP_PICK : 'OP_PICK',
-    OP_ROLL : 'OP_ROLL',
-    OP_ROT : 'OP_ROT',
-    OP_SWAP : 'OP_SWAP',
-    OP_TUCK : 'OP_TUCK',
-    OP_CAT : 'OP_CAT',
-    OP_SUBSTR : 'OP_SUBSTR',
-    OP_LEFT : 'OP_LEFT',
-    OP_RIGHT : 'OP_RIGHT',
-    OP_SIZE : 'OP_SIZE',
-    OP_INVERT : 'OP_INVERT',
-    OP_AND : 'OP_AND',
-    OP_OR : 'OP_OR',
-    OP_XOR : 'OP_XOR',
-    OP_EQUAL : 'OP_EQUAL',
-    OP_EQUALVERIFY : 'OP_EQUALVERIFY',
-    OP_RESERVED1 : 'OP_RESERVED1',
-    OP_RESERVED2 : 'OP_RESERVED2',
-    OP_1ADD : 'OP_1ADD',
-    OP_1SUB : 'OP_1SUB',
-    OP_2MUL : 'OP_2MUL',
-    OP_2DIV : 'OP_2DIV',
-    OP_NEGATE : 'OP_NEGATE',
-    OP_ABS : 'OP_ABS',
-    OP_NOT : 'OP_NOT',
-    OP_0NOTEQUAL : 'OP_0NOTEQUAL',
-    OP_ADD : 'OP_ADD',
-    OP_SUB : 'OP_SUB',
-    OP_MUL : 'OP_MUL',
-    OP_DIV : 'OP_DIV',
-    OP_MOD : 'OP_MOD',
-    OP_LSHIFT : 'OP_LSHIFT',
-    OP_RSHIFT : 'OP_RSHIFT',
-    OP_BOOLAND : 'OP_BOOLAND',
-    OP_BOOLOR : 'OP_BOOLOR',
-    OP_NUMEQUAL : 'OP_NUMEQUAL',
-    OP_NUMEQUALVERIFY : 'OP_NUMEQUALVERIFY',
-    OP_NUMNOTEQUAL : 'OP_NUMNOTEQUAL',
-    OP_LESSTHAN : 'OP_LESSTHAN',
-    OP_GREATERTHAN : 'OP_GREATERTHAN',
-    OP_LESSTHANOREQUAL : 'OP_LESSTHANOREQUAL',
-    OP_GREATERTHANOREQUAL : 'OP_GREATERTHANOREQUAL',
-    OP_MIN : 'OP_MIN',
-    OP_MAX : 'OP_MAX',
-    OP_WITHIN : 'OP_WITHIN',
-    OP_RIPEMD160 : 'OP_RIPEMD160',
-    OP_SHA1 : 'OP_SHA1',
-    OP_SHA256 : 'OP_SHA256',
-    OP_HASH160 : 'OP_HASH160',
-    OP_HASH256 : 'OP_HASH256',
-    OP_CODESEPARATOR : 'OP_CODESEPARATOR',
-    OP_CHECKSIG : 'OP_CHECKSIG',
-    OP_CHECKSIGVERIFY : 'OP_CHECKSIGVERIFY',
-    OP_CHECKMULTISIG : 'OP_CHECKMULTISIG',
-    OP_CHECKMULTISIGVERIFY : 'OP_CHECKMULTISIGVERIFY',
-    OP_NOP1 : 'OP_NOP1',
-    OP_CHECKLOCKTIMEVERIFY : 'OP_CHECKLOCKTIMEVERIFY',
-    OP_CHECKSEQUENCEVERIFY : 'OP_CHECKSEQUENCEVERIFY',
-    OP_NOP4 : 'OP_NOP4',
-    OP_NOP5 : 'OP_NOP5',
-    OP_NOP6 : 'OP_NOP6',
-    OP_NOP7 : 'OP_NOP7',
-    OP_NOP8 : 'OP_NOP8',
-    OP_NOP9 : 'OP_NOP9',
-    OP_NOP10 : 'OP_NOP10',
-    OP_SMALLINTEGER : 'OP_SMALLINTEGER',
-    OP_PUBKEYS : 'OP_PUBKEYS',
-    OP_PUBKEYHASH : 'OP_PUBKEYHASH',
-    OP_PUBKEY : 'OP_PUBKEY',
-    OP_INVALIDOPCODE : 'OP_INVALIDOPCODE',
+    OP_0: 'OP_0',
+    OP_PUSHDATA1: 'OP_PUSHDATA1',
+    OP_PUSHDATA2: 'OP_PUSHDATA2',
+    OP_PUSHDATA4: 'OP_PUSHDATA4',
+    OP_1NEGATE: 'OP_1NEGATE',
+    OP_RESERVED: 'OP_RESERVED',
+    OP_1: 'OP_1',
+    OP_2: 'OP_2',
+    OP_3: 'OP_3',
+    OP_4: 'OP_4',
+    OP_5: 'OP_5',
+    OP_6: 'OP_6',
+    OP_7: 'OP_7',
+    OP_8: 'OP_8',
+    OP_9: 'OP_9',
+    OP_10: 'OP_10',
+    OP_11: 'OP_11',
+    OP_12: 'OP_12',
+    OP_13: 'OP_13',
+    OP_14: 'OP_14',
+    OP_15: 'OP_15',
+    OP_16: 'OP_16',
+    OP_NOP: 'OP_NOP',
+    OP_VER: 'OP_VER',
+    OP_IF: 'OP_IF',
+    OP_NOTIF: 'OP_NOTIF',
+    OP_VERIF: 'OP_VERIF',
+    OP_VERNOTIF: 'OP_VERNOTIF',
+    OP_ELSE: 'OP_ELSE',
+    OP_ENDIF: 'OP_ENDIF',
+    OP_VERIFY: 'OP_VERIFY',
+    OP_RETURN: 'OP_RETURN',
+    OP_TOALTSTACK: 'OP_TOALTSTACK',
+    OP_FROMALTSTACK: 'OP_FROMALTSTACK',
+    OP_2DROP: 'OP_2DROP',
+    OP_2DUP: 'OP_2DUP',
+    OP_3DUP: 'OP_3DUP',
+    OP_2OVER: 'OP_2OVER',
+    OP_2ROT: 'OP_2ROT',
+    OP_2SWAP: 'OP_2SWAP',
+    OP_IFDUP: 'OP_IFDUP',
+    OP_DEPTH: 'OP_DEPTH',
+    OP_DROP: 'OP_DROP',
+    OP_DUP: 'OP_DUP',
+    OP_NIP: 'OP_NIP',
+    OP_OVER: 'OP_OVER',
+    OP_PICK: 'OP_PICK',
+    OP_ROLL: 'OP_ROLL',
+    OP_ROT: 'OP_ROT',
+    OP_SWAP: 'OP_SWAP',
+    OP_TUCK: 'OP_TUCK',
+    OP_CAT: 'OP_CAT',
+    OP_SUBSTR: 'OP_SUBSTR',
+    OP_LEFT: 'OP_LEFT',
+    OP_RIGHT: 'OP_RIGHT',
+    OP_SIZE: 'OP_SIZE',
+    OP_INVERT: 'OP_INVERT',
+    OP_AND: 'OP_AND',
+    OP_OR: 'OP_OR',
+    OP_XOR: 'OP_XOR',
+    OP_EQUAL: 'OP_EQUAL',
+    OP_EQUALVERIFY: 'OP_EQUALVERIFY',
+    OP_RESERVED1: 'OP_RESERVED1',
+    OP_RESERVED2: 'OP_RESERVED2',
+    OP_1ADD: 'OP_1ADD',
+    OP_1SUB: 'OP_1SUB',
+    OP_2MUL: 'OP_2MUL',
+    OP_2DIV: 'OP_2DIV',
+    OP_NEGATE: 'OP_NEGATE',
+    OP_ABS: 'OP_ABS',
+    OP_NOT: 'OP_NOT',
+    OP_0NOTEQUAL: 'OP_0NOTEQUAL',
+    OP_ADD: 'OP_ADD',
+    OP_SUB: 'OP_SUB',
+    OP_MUL: 'OP_MUL',
+    OP_DIV: 'OP_DIV',
+    OP_MOD: 'OP_MOD',
+    OP_LSHIFT: 'OP_LSHIFT',
+    OP_RSHIFT: 'OP_RSHIFT',
+    OP_BOOLAND: 'OP_BOOLAND',
+    OP_BOOLOR: 'OP_BOOLOR',
+    OP_NUMEQUAL: 'OP_NUMEQUAL',
+    OP_NUMEQUALVERIFY: 'OP_NUMEQUALVERIFY',
+    OP_NUMNOTEQUAL: 'OP_NUMNOTEQUAL',
+    OP_LESSTHAN: 'OP_LESSTHAN',
+    OP_GREATERTHAN: 'OP_GREATERTHAN',
+    OP_LESSTHANOREQUAL: 'OP_LESSTHANOREQUAL',
+    OP_GREATERTHANOREQUAL: 'OP_GREATERTHANOREQUAL',
+    OP_MIN: 'OP_MIN',
+    OP_MAX: 'OP_MAX',
+    OP_WITHIN: 'OP_WITHIN',
+    OP_RIPEMD160: 'OP_RIPEMD160',
+    OP_SHA1: 'OP_SHA1',
+    OP_SHA256: 'OP_SHA256',
+    OP_HASH160: 'OP_HASH160',
+    OP_HASH256: 'OP_HASH256',
+    OP_CODESEPARATOR: 'OP_CODESEPARATOR',
+    OP_CHECKSIG: 'OP_CHECKSIG',
+    OP_CHECKSIGVERIFY: 'OP_CHECKSIGVERIFY',
+    OP_CHECKMULTISIG: 'OP_CHECKMULTISIG',
+    OP_CHECKMULTISIGVERIFY: 'OP_CHECKMULTISIGVERIFY',
+    OP_NOP1: 'OP_NOP1',
+    OP_CHECKLOCKTIMEVERIFY: 'OP_CHECKLOCKTIMEVERIFY',
+    OP_CHECKSEQUENCEVERIFY: 'OP_CHECKSEQUENCEVERIFY',
+    OP_NOP4: 'OP_NOP4',
+    OP_NOP5: 'OP_NOP5',
+    OP_NOP6: 'OP_NOP6',
+    OP_NOP7: 'OP_NOP7',
+    OP_NOP8: 'OP_NOP8',
+    OP_NOP9: 'OP_NOP9',
+    OP_NOP10: 'OP_NOP10',
+    OP_CHECKSIGADD: 'OP_CHECKSIGADD',
+    OP_INVALIDOPCODE: 'OP_INVALIDOPCODE',
 })
 
 class CScriptInvalidError(Exception):
@@ -608,6 +615,11 @@ def FindAndDelete(script, sig):
         r += script[last_sop_idx:]
     return CScript(r)
 
+def IsPayToScriptHash(script):
+    return len(script) == 23 and script[0] == OP_HASH160 and script[1] == 20 and script[22] == OP_EQUAL
+
+def IsPayToTaproot(script):
+    return len(script) == 34 and script[0] == OP_1 and script[1] == 32
 
 def LegacySignatureHash(script, txTo, inIdx, hashtype):
     """Consensus-correct SignatureHash
@@ -703,3 +715,116 @@ def SegwitV0SignatureHash(script, txTo, inIdx, hashtype, amount):
     ss += struct.pack("<I", hashtype)
 
     return hash256(ss)
+
+class TestFrameworkScript(unittest.TestCase):
+    def test_bn2vch(self):
+        self.assertEqual(bn2vch(0), bytes([]))
+        self.assertEqual(bn2vch(1), bytes([0x01]))
+        self.assertEqual(bn2vch(-1), bytes([0x81]))
+        self.assertEqual(bn2vch(0x7F), bytes([0x7F]))
+        self.assertEqual(bn2vch(-0x7F), bytes([0xFF]))
+        self.assertEqual(bn2vch(0x80), bytes([0x80, 0x00]))
+        self.assertEqual(bn2vch(-0x80), bytes([0x80, 0x80]))
+        self.assertEqual(bn2vch(0xFF), bytes([0xFF, 0x00]))
+        self.assertEqual(bn2vch(-0xFF), bytes([0xFF, 0x80]))
+        self.assertEqual(bn2vch(0x100), bytes([0x00, 0x01]))
+        self.assertEqual(bn2vch(-0x100), bytes([0x00, 0x81]))
+        self.assertEqual(bn2vch(0x7FFF), bytes([0xFF, 0x7F]))
+        self.assertEqual(bn2vch(-0x8000), bytes([0x00, 0x80, 0x80]))
+        self.assertEqual(bn2vch(-0x7FFFFF), bytes([0xFF, 0xFF, 0xFF]))
+        self.assertEqual(bn2vch(0x80000000), bytes([0x00, 0x00, 0x00, 0x80, 0x00]))
+        self.assertEqual(bn2vch(-0x80000000), bytes([0x00, 0x00, 0x00, 0x80, 0x80]))
+        self.assertEqual(bn2vch(0xFFFFFFFF), bytes([0xFF, 0xFF, 0xFF, 0xFF, 0x00]))
+        self.assertEqual(bn2vch(123456789), bytes([0x15, 0xCD, 0x5B, 0x07]))
+        self.assertEqual(bn2vch(-54321), bytes([0x31, 0xD4, 0x80]))
+
+def TaprootSignatureHash(txTo, spent_utxos, hash_type, input_index = 0, scriptpath = False, script = CScript(), codeseparator_pos = -1, annex = None, leaf_ver = LEAF_VERSION_TAPSCRIPT):
+    assert (len(txTo.vin) == len(spent_utxos))
+    assert((hash_type >= 0 and hash_type <= 3) or (hash_type >= 0x81 and hash_type <= 0x83))
+    assert (input_index < len(txTo.vin))
+    spk = spent_utxos[input_index].scriptPubKey
+    ss = bytes([0, hash_type]) # epoch, hash_type
+    ss += struct.pack("<i", txTo.nVersion)
+    ss += struct.pack("<I", txTo.nLockTime)
+    if not (hash_type & SIGHASH_ANYONECANPAY):
+        ss += sha256(b"".join(i.prevout.serialize() for i in txTo.vin))
+        ss += sha256(b"".join(struct.pack("<q", u.nValue) for u in spent_utxos))
+        ss += sha256(b"".join(ser_string(u.scriptPubKey) for u in spent_utxos))
+        ss += sha256(b"".join(struct.pack("<I", i.nSequence) for i in txTo.vin))
+    if (hash_type & 3) != SIGHASH_SINGLE and (hash_type & 3) != SIGHASH_NONE:
+        ss += sha256(b"".join(o.serialize() for o in txTo.vout))
+    spend_type = 0
+    assert(IsPayToTaproot(spk))
+    if annex is not None:
+        assert (annex[0] == ANNEX_TAG)
+        spend_type |= 1
+    if (scriptpath):
+        assert (len(script) > 0)
+        assert (codeseparator_pos >= -1)
+        spend_type |= 2
+    ss += bytes([spend_type])
+    if (hash_type & SIGHASH_ANYONECANPAY):
+        ss += txTo.vin[input_index].prevout.serialize()
+        ss += struct.pack("<q", spent_utxos[input_index].nValue)
+        ss += ser_string(spk)
+        ss += struct.pack("<I", txTo.vin[input_index].nSequence)
+    else:
+        ss += struct.pack("<I", input_index)
+    if (spend_type & 1):
+        ss += sha256(ser_string(annex))
+    if (hash_type & 3 == SIGHASH_SINGLE):
+        assert (input_index < len(txTo.vout))
+        ss += sha256(txTo.vout[input_index].serialize())
+    if (scriptpath):
+        ss += TaggedHash("TapLeaf", bytes([leaf_ver]) + ser_string(script))
+        ss += bytes([0])
+        ss += struct.pack("<i", codeseparator_pos)
+    assert len(ss) ==  175 - ((hash_type & SIGHASH_ANYONECANPAY) != 0) * 49 - (hash_type & 3 == SIGHASH_NONE) * 32 + (annex is not None) * 32 + scriptpath * 37
+    return TaggedHash("TapSighash", ss)
+
+def taproot_tree_helper(scripts):
+    if len(scripts) == 1:
+        script = scripts[0]
+        if isinstance(script, list):
+            return taproot_tree_helper(script)
+        version = LEAF_VERSION_TAPSCRIPT
+        if isinstance(script, tuple):
+            version, script = script
+        assert isinstance(script, bytes)
+        h = TaggedHash("TapLeaf", bytes([version & 0xfe]) + ser_string(script))
+        return ([(version, script, bytes())], h)
+    split_pos = len(scripts) // 2
+    left, left_h = taproot_tree_helper(scripts[0:split_pos])
+    right, right_h = taproot_tree_helper(scripts[split_pos:])
+    left = [(version, script, control + right_h) for version, script, control in left]
+    right = [(version, script, control + left_h) for version, script, control in right]
+    if right_h < left_h:
+        right_h, left_h = left_h, right_h
+    h = TaggedHash("TapBranch", left_h + right_h)
+    return (left + right, h)
+
+def taproot_construct(pubkey, scripts=None):
+    """Construct a tree of Taproot spending conditions
+
+    pubkey: an ECPubKey object for the root pubkey
+    scripts: a list of items; each item is either:
+             - a CScript
+             - a (version, CScript) tuple
+             - another list of items (with the same structure)
+
+    Returns: script (sPK or redeemScript), tweak, {script:control, ...}
+    """
+    if scripts is None:
+        scripts = []
+
+    if len(scripts) == 0:
+        return (CScript([OP_1, pubkey]), bytes([0 for i in range(32)]), {})
+
+    ret, h = taproot_tree_helper(scripts)
+    tweak = TaggedHash("TapTweak", pubkey + h)
+    tweaked, negated = tweak_pubkey(pubkey, tweak)
+    control_map = dict((script, bytes([(version & 0xfe) + (1 if negated else 0)]) + pubkey + control) for version, script, control in ret)
+    return (CScript([OP_1, tweaked]), tweak, control_map)
+
+def is_op_success(o):
+    return o == 0x50 or o == 0x62 or o == 0x89 or o == 0x8a or o == 0x8d or o == 0x8e or (o >= 0x7e and o <= 0x81) or (o >= 0x83 and o <= 0x86) or (o >= 0x95 and o <= 0x99) or (o >= 0xbb and o <= 0xfe)
