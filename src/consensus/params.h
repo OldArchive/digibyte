@@ -22,8 +22,7 @@ enum DeploymentPos
     DEPLOYMENT_NVERSIONBIPS, // Deployment of BIP34, BIP65, and BIP66.
     DEPLOYMENT_RESERVEALGO,  // Reservation of version bits for future algos
     DEPLOYMENT_ODO, // Odo hard fork
-    //DEPLOYMENT_EQUIHASH, // Equihash algo swap
-    //DEPLOYMENT_ETHASH, // Ethash algo swap
+    DEPLOYMENT_TAPROOT, // Deployment of Schnorr/Taproot (BIPs 340-342)
     // NOTE: Also add new deployments to VersionBitsDeploymentInfo in versionbits.cpp
     MAX_VERSION_BITS_DEPLOYMENTS
 };

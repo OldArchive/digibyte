@@ -189,6 +189,10 @@ public:
 
         consensus.nOdoShapechangeInterval = 10*24*60*60; // 10 days
 
+        // Deployment of Taproot (BIPs 340-342)
+        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].bit = 2;
+        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nStartTime = 1199145601; // January 1, 2008
+        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nTimeout = 1230767999; // December 31, 2008
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S("0x00");
 
@@ -394,6 +398,10 @@ public:
 
         consensus.nOdoShapechangeInterval = 1*24*60*60; // 1 day
 
+        // Deployment of Taproot (BIPs 340-342)
+        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].bit = 2;
+        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nStartTime = 1199145601; // January 1, 2008
+        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nTimeout = 1230767999; // December 31, 2008
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S("0x00");
 
@@ -530,6 +538,9 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_RESERVEALGO].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
         consensus.vDeployments[Consensus::DEPLOYMENT_ODO].bit = 6;
         consensus.vDeployments[Consensus::DEPLOYMENT_ODO].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;
+        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].bit = 2;
+        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;
+        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
 
         consensus.nOdoShapechangeInterval = 60; // 1 minute
 
